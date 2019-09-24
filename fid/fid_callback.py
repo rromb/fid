@@ -176,8 +176,9 @@ def get_activations_from_dset(dset, sess, batch_size=50, imkey='image', verbose=
             print("\rPropagating batch %d/%d" % (i+1, n_batches), end="", flush=True)
         start = i*batch_size
         end = start + batch_size
-        images = adjust_support(np.array(batch[imkey]), '0->255', clip=True)
-        images = images.astype(np.float32)
+        images = retrieve(batch, imkey)
+        images = adjust_support(np.array(images), '0->255', clip=True)
+        images = images.astype(np.float32)[..., :3]
 
         if len(pred_arr[start:end]) == 0:
             continue
@@ -260,9 +261,8 @@ def calculate_fid_given_dsets(dsets, imkeys, inception_path,
         return fid_value
 
 
-def fid(root, data_in, data_out, config):
-    imkey_in = retrieve(config, 'fid/imkey_in', default='image')
-    imkey_out = retrieve(config, 'fid/imkey_out', default='image')
+def fid(root, data_in, data_out, config,
+        im_in_key='image', im_out_key='image', name='fid'):
 
     incept_p = os.environ.get(
             'INCEPTION_PATH', 
@@ -274,14 +274,14 @@ def fid(root, data_in, data_out, config):
 
     fid_value = calculate_fid_given_dsets(
             [data_in, data_out],
-            [imkey_in, imkey_out],
+            [im_in_key, im_out_key],
             inception_path,
             batch_size)
 
     if 'model_output.csv' in root:
         root = root[:-len('model_output.csv')]
 
-    save_dir = os.path.join(root, 'fid')
+    save_dir = os.path.join(root, name)
     savename = os.path.join(save_dir, 'score.txt')
 
     os.makedirs(save_dir, exist_ok=True)
@@ -289,7 +289,7 @@ def fid(root, data_in, data_out, config):
     with open(savename, 'w+') as f:
         f.write(str(fid_value))
 
-    print('FID SCORE: {}'.format(fid_value))
+    print('\nFID SCORE: {}'.format(fid_value))
 
 if __name__ == "__main__":
     from edflow.debug import DebugDataset
