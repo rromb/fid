@@ -23,21 +23,15 @@ from tqdm import tqdm
 from edflow.iterators.batches import make_batches
 from edflow.data.util import adjust_support
 from edflow.util import retrieve
-
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 def create_inception_graph(pth):
     """Creates a graph from saved GraphDef file."""
     # Creates graph from saved graph_def.pb.
-    try:
-        with tf.gfile.FastGFile( pth, 'rb') as f:
-            graph_def = tf.GraphDef()
-            graph_def.ParseFromString( f.read())
-            _ = tf.import_graph_def( graph_def, name='FID_Inception_Net')
-    except AttributeError:
-        with tf.io.gfile.GFile( pth, 'rb') as f:
-            graph_def = tf.GraphDef()
-            graph_def.ParseFromString( f.read())
-            _ = tf.import_graph_def( graph_def, name='FID_Inception_Net')
+    with tf.gfile.FastGFile( pth, 'rb') as f:
+        graph_def = tf.GraphDef()
+        graph_def.ParseFromString( f.read())
+        _ = tf.import_graph_def( graph_def, name='FID_Inception_Net')
 
 
 # code for handling inception net derived from
