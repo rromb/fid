@@ -34,7 +34,7 @@ def create_inception_graph(pth):
             graph_def.ParseFromString( f.read())
             _ = tf.import_graph_def( graph_def, name='FID_Inception_Net')
     except AttributeError:
-        with tf.io.gfile.FastGFile( pth, 'rb') as f:
+        with tf.io.gfile.GFile( pth, 'rb') as f:
             graph_def = tf.GraphDef()
             graph_def.ParseFromString( f.read())
             _ = tf.import_graph_def( graph_def, name='FID_Inception_Net')
