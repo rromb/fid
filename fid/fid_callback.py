@@ -181,7 +181,6 @@ def get_activations_from_dset(dset, sess, batch_size=50, imkey='image', verbose=
         images = images.astype(np.float32)[..., :3]
 
         if images.shape[-1] == 1:
-            print('dealing with one channel images of size {}'.format(images.shape))
             images = np.tile(images, [1,1,1,3])
 
         if len(pred_arr[start:end]) == 0:
