@@ -28,10 +28,16 @@ from edflow.util import retrieve
 def create_inception_graph(pth):
     """Creates a graph from saved GraphDef file."""
     # Creates graph from saved graph_def.pb.
-    with tf.gfile.FastGFile( pth, 'rb') as f:
-        graph_def = tf.GraphDef()
-        graph_def.ParseFromString( f.read())
-        _ = tf.import_graph_def( graph_def, name='FID_Inception_Net')
+    try:
+        with tf.gfile.FastGFile( pth, 'rb') as f:
+            graph_def = tf.GraphDef()
+            graph_def.ParseFromString( f.read())
+            _ = tf.import_graph_def( graph_def, name='FID_Inception_Net')
+    except AttributeError:
+        with tf.io.gfile.FastGFile( pth, 'rb') as f:
+            graph_def = tf.GraphDef()
+            graph_def.ParseFromString( f.read())
+            _ = tf.import_graph_def( graph_def, name='FID_Inception_Net')
 
 
 # code for handling inception net derived from
