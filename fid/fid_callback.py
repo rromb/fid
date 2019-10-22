@@ -180,12 +180,16 @@ def get_activations_from_dset(dset, sess, batch_size=50, imkey='image', verbose=
         images = adjust_support(np.array(images), '0->255', clip=True)
         images = images.astype(np.float32)[..., :3]
 
+        if images.shape[-1] == 1:
+            print('dealing with one channel images of size {}'.format(images.shape))
+            images = np.tile(images, [1,1,1,3])
+
         if len(pred_arr[start:end]) == 0:
             continue
 
         pred = sess.run(inception_layer, {'FID_Inception_Net/ExpandDims:0': images})
         pred_arr[start:end] = pred.reshape(batch_size,-1)
-        del batch #clean up memory
+        del batch  # clean up memory
 
     if verbose:
         print(" done")
