@@ -298,6 +298,8 @@ def fid(root, data_in, data_out, config,
     pre_calc_stat_path = retrieve(config, 'fid/pre_calc_stat_path', default='none')
     fid_iterations = retrieve(config, 'fid/fid_iterations', default=1)
 
+    save_dir = os.path.join(root, name)
+    os.makedirs(save_dir, exist_ok=True)
     fids = []
     for ii in range(fid_iterations):
         if pre_calc_stat_path is not 'none':
@@ -311,15 +313,13 @@ def fid(root, data_in, data_out, config,
                     [im_in_key, im_out_key],
                     inception_path,
                     batch_size,
-                    save_data_in_path=os.path.join(os.path.join(root, name), 'pre_calc_stats'))
+                    save_data_in_path=os.path.join(save_dir, 'pre_calc_stats'))
         fids.append(fid_value)
 
     if 'model_output.csv' in root:
         root = root[:-len('model_output.csv')]
-    save_dir = os.path.join(root, name)
     savename_score = os.path.join(save_dir, 'score.txt')
     savename_std = os.path.join(save_dir, 'std.txt')
-    os.makedirs(save_dir, exist_ok=True)
 
     fid_score = np.array(fids).mean()
     fid_std = np.array(fids).std()
