@@ -293,14 +293,14 @@ def fid(root, data_in, data_out, config,
             '/export/scratch/jhaux/Models/inception_fid'
             )
 
-    pre_calc_stat_path = retrieve(config, 'fid/pre_calc_stat_path', default=None)
     inception_path = retrieve(config, 'fid/inception_path', default=incept_p)
     batch_size = retrieve(config, 'fid/batch_size', default=50)
+    pre_calc_stat_path = retrieve(config, 'fid/pre_calc_stat_path', default='none')
     fid_iterations = retrieve(config, 'fid/fid_iterations', default=1)
 
     fids = []
     for ii in range(fid_iterations):
-        if pre_calc_stat_path is not None:
+        if pre_calc_stat_path is not 'none':
             fid_value = calculate_fid_given_npz_and_dset(pre_calc_stat_path, [data_in, data_out],
                     [im_in_key, im_out_key],
                     inception_path,
