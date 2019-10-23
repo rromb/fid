@@ -218,12 +218,13 @@ def calculate_activation_statistics_from_dset(dset, sess, batch_size=50, imkey='
     
 #-------------------------------------------------------------------------------
 
-
 #-------------------------------------------------------------------------------
 # The following functions aren't needed for calculating the FID
 # they're just here to make this module work as a stand-alone script
 # for calculating FID scores
 #-------------------------------------------------------------------------------
+
+
 def check_or_download_inception(inception_path):
     ''' Checks if the path to the inception file is valid, or downloads
         the file if it is not present. '''
@@ -243,7 +244,7 @@ def check_or_download_inception(inception_path):
 
 
 def calculate_fid_given_dsets(dsets, imkeys, inception_path,
-                              batch_size=50):
+                              batch_size=50, save_data_in_path=None):
     ''' Calculates the FID of two paths. '''
     inception_path = check_or_download_inception(inception_path)
 
@@ -255,6 +256,9 @@ def calculate_fid_given_dsets(dsets, imkeys, inception_path,
         m1, s1 = calculate_activation_statistics_from_dset(
                 dsets[0], sess, batch_size, imkeys[0]
                 )
+        if save_data_in_path is not None:
+            print('\nSaved input data statistics to {}'.format(save_data_in_path))
+            np.savez(save_data_in_path, mu=m1, sigma=s1)
         m2, s2 = calculate_activation_statistics_from_dset(
                 dsets[1], sess, batch_size, imkeys[1]
                 )
@@ -272,7 +276,10 @@ def calculate_fid_given_npz_and_dset(npz_path, dsets, imkeys, inception_path,
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        m1, s1 = np.load(npz_path)
+        assert npz_path.endswith('.npz')
+        f = np.load(npz_path)
+        m1, s1 = f['mu'][:], f['sigma'][:]
+        f.close()
         m2, s2 = calculate_activation_statistics_from_dset(dsets[1], sess, batch_size, imkeys[1])
         fid_value = calculate_frechet_distance(m1, s1, m2, s2)
         return fid_value
@@ -303,7 +310,8 @@ def fid(root, data_in, data_out, config,
                     [data_in, data_out],
                     [im_in_key, im_out_key],
                     inception_path,
-                    batch_size)
+                    batch_size,
+                    save_data_in_path=os.path.join(os.path.join(root, name), 'pre_calc_stats'))
         fids.append(fid_value)
 
     if 'model_output.csv' in root:
