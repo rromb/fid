@@ -264,6 +264,20 @@ def calculate_fid_given_dsets(dsets, imkeys, inception_path,
         return fid_value
 
 
+def calculate_fid_given_npz_and_dset(npz_path, dsets, imkeys, inception_path,
+                              batch_size=50):
+    ''' Calculates the FID where data statistics is given in npz and evaluation in dataset. '''
+    inception_path = check_or_download_inception(inception_path)
+    create_inception_graph(str(inception_path))
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        m1, s1 = np.load(npz_path)
+        m2, s2 = calculate_activation_statistics_from_dset(dsets[1], sess, batch_size, imkeys[1])
+        fid_value = calculate_frechet_distance(m1, s1, m2, s2)
+        return fid_value
+
+
 def fid(root, data_in, data_out, config,
         im_in_key='image', im_out_key='image', name='fid'):
 
@@ -271,28 +285,42 @@ def fid(root, data_in, data_out, config,
             'INCEPTION_PATH', 
             '/export/scratch/jhaux/Models/inception_fid'
             )
+
+    pre_calc_stat_path = retrieve(config, 'fid/pre_calc_stat_path', default=None)
     inception_path = retrieve(config, 'fid/inception_path', default=incept_p)
-
     batch_size = retrieve(config, 'fid/batch_size', default=50)
+    fid_iterations = retrieve(config, 'fid/fid_iterations', default=1)
 
-    fid_value = calculate_fid_given_dsets(
-            [data_in, data_out],
-            [im_in_key, im_out_key],
-            inception_path,
-            batch_size)
+    fids = []
+    for ii in range(fid_iterations):
+        if pre_calc_stat_path is not None:
+            fid_value = calculate_fid_given_npz_and_dset(pre_calc_stat_path, [data_in, data_out],
+                    [im_in_key, im_out_key],
+                    inception_path,
+                    batch_size)
+        else:
+            fid_value = calculate_fid_given_dsets(
+                    [data_in, data_out],
+                    [im_in_key, im_out_key],
+                    inception_path,
+                    batch_size)
+        fids.append(fid_value)
 
     if 'model_output.csv' in root:
         root = root[:-len('model_output.csv')]
-
     save_dir = os.path.join(root, name)
-    savename = os.path.join(save_dir, 'score.txt')
-
+    savename_score = os.path.join(save_dir, 'score.txt')
+    savename_std = os.path.join(save_dir, 'std.txt')
     os.makedirs(save_dir, exist_ok=True)
 
-    with open(savename, 'w+') as f:
-        f.write(str(fid_value))
+    fid_score = np.array(fids).mean()
+    fid_std = np.array(fids).std()
+    with open(savename_score, 'w+') as f:
+        f.write(str(fid_score))
+    with open(savename_std, 'w+') as f:
+        f.write(str(fid_std))
+    print('\nFID SCORE: {:.2f} +/- {:.2f}'.format(fid_score, fid_std))
 
-    print('\nFID SCORE: {}'.format(fid_value))
 
 if __name__ == "__main__":
     from edflow.debug import DebugDataset

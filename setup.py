@@ -18,7 +18,7 @@ setup(
         "tqdm",
         "numpy",
         "scipy",
-        "tensorflow",
+        "tensorflow<=1.14",
         "edflow"
     ],
     zip_safe=False,
