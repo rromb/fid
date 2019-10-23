@@ -17,13 +17,13 @@ from scipy import linalg
 import pathlib
 import urllib
 import warnings
-
 from tqdm import tqdm
 
 from edflow.iterators.batches import make_batches
 from edflow.data.util import adjust_support
 from edflow.util import retrieve
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
 
 def create_inception_graph(pth):
     """Creates a graph from saved GraphDef file."""
@@ -285,6 +285,20 @@ def calculate_fid_given_npz_and_dset(npz_path, dsets, imkeys, inception_path,
         return fid_value
 
 
+def calculate_fid_from_npz_if_available(npz_path, dsets, imkeys, inception_path,
+                              batch_size=50):
+    try:
+        # calculate from npz
+        fid_value = calculate_fid_given_npz_and_dset(npz_path, dsets, imkeys, inception_path, batch_size=batch_size)
+    except:
+        # if not possible to calculate from npz, calc from input data and save to npz
+        os.makedirs(os.path.split(npz_path)[0], exist_ok=True)
+        fid_value = calculate_fid_given_dsets(dsets, imkeys, inception_path, batch_size=batch_size,
+                                              save_data_in_path=npz_path[:-4])
+        print('\nNo npz file found, calculating statistics from data...')
+    return fid_value
+
+
 def fid(root, data_in, data_out, config,
         im_in_key='image', im_out_key='image', name='fid'):
 
@@ -303,7 +317,7 @@ def fid(root, data_in, data_out, config,
     fids = []
     for ii in range(fid_iterations):
         if pre_calc_stat_path is not 'none':
-            fid_value = calculate_fid_given_npz_and_dset(pre_calc_stat_path, [data_in, data_out],
+            fid_value = calculate_fid_from_npz_if_available(pre_calc_stat_path, [data_in, data_out],
                     [im_in_key, im_out_key],
                     inception_path,
                     batch_size)
