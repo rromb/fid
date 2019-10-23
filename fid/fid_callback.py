@@ -289,6 +289,7 @@ def calculate_fid_from_npz_if_available(npz_path, dsets, imkeys, inception_path,
                               batch_size=50):
     try:
         # calculate from npz
+        print('\nFound a .npz file, loading from it...')
         fid_value = calculate_fid_given_npz_and_dset(npz_path, dsets, imkeys, inception_path, batch_size=batch_size)
     except:
         # if not possible to calculate from npz, calc from input data and save to npz
