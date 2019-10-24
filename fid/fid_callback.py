@@ -327,14 +327,14 @@ def fid(root, data_in, data_out, config,
     for ii in range(fid_iterations):
         if pre_calc_stat_path is not 'none':
             fid_value = calculate_fid_from_npz_if_available(pre_calc_stat_path, [data_in, data_out],
-                    [support_in, support_out],
+                    [im_in_support, im_out_support],
                     [im_in_key, im_out_key],
                     inception_path,
                     batch_size)
         else:
             fid_value = calculate_fid_given_dsets(
                     [data_in, data_out],
-                    [support_in, support_out],
+                    [im_in_support, im_out_support],
                     [im_in_key, im_out_key],
                     inception_path,
                     batch_size,
