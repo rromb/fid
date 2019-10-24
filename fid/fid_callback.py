@@ -139,11 +139,12 @@ def calculate_activation_statistics(images, sess, batch_size=50, verbose=False):
 #------------------
 
 
-def get_activations_from_dset(dset, sess, batch_size=50, imkey='image', verbose=False):
+def get_activations_from_dset(dset, imsupport, sess, batch_size=50, imkey='image', verbose=False):
     """Calculates the activations of the pool_3 layer for all images.
 
     Params:
     -- dset        : DatasetMixin which contains the images.
+    -- imsupport   : Support of images. One of '-1->1', '0->1' or '0->255'
     -- sess        : current session
     -- batch_size  : the images numpy array is split into batches with batch size
                      batch_size. A reasonable batch size depends on the disposable hardware.
@@ -177,7 +178,10 @@ def get_activations_from_dset(dset, sess, batch_size=50, imkey='image', verbose=
         start = i*batch_size
         end = start + batch_size
         images = retrieve(batch, imkey)
-        images = adjust_support(np.array(images), '0->255', clip=True)
+        images = adjust_support(np.array(images),
+                future_support='0->255',
+                current_support=imsupport,
+                clip=True)
         images = images.astype(np.float32)[..., :3]
 
         if images.shape[-1] == 1:
@@ -195,7 +199,7 @@ def get_activations_from_dset(dset, sess, batch_size=50, imkey='image', verbose=
     return pred_arr
 
     
-def calculate_activation_statistics_from_dset(dset, sess, batch_size=50, imkey='image', verbose=False):
+def calculate_activation_statistics_from_dset(dset, imsupport, sess, batch_size=50, imkey='image', verbose=False):
     """Calculation of the statistics used by the FID.
     Params:
     -- dset        : DatasetMixin which contains the images.
@@ -211,7 +215,7 @@ def calculate_activation_statistics_from_dset(dset, sess, batch_size=50, imkey='
     -- sigma : The covariance matrix of the activations of the pool_3 layer of
                the incption model.
     """
-    act = get_activations_from_dset(dset, sess, batch_size, imkey, verbose)
+    act = get_activations_from_dset(dset, imsupport, sess, batch_size, imkey, verbose)
     mu = np.mean(act, axis=0)
     sigma = np.cov(act, rowvar=False)
     return mu, sigma
@@ -243,7 +247,7 @@ def check_or_download_inception(inception_path):
     return str(model_file)
 
 
-def calculate_fid_given_dsets(dsets, imkeys, inception_path,
+def calculate_fid_given_dsets(dsets, imsupports, imkeys, inception_path,
                               batch_size=50, save_data_in_path=None):
     ''' Calculates the FID of two paths. '''
     inception_path = check_or_download_inception(inception_path)
@@ -254,13 +258,13 @@ def calculate_fid_given_dsets(dsets, imkeys, inception_path,
         sess.run(tf.global_variables_initializer())
 
         m1, s1 = calculate_activation_statistics_from_dset(
-                dsets[0], sess, batch_size, imkeys[0]
+                dsets[0], imsupports[0], sess, batch_size, imkeys[0]
                 )
         if save_data_in_path is not None:
             print('\nSaved input data statistics to {}'.format(save_data_in_path))
             np.savez(save_data_in_path, mu=m1, sigma=s1)
         m2, s2 = calculate_activation_statistics_from_dset(
-                dsets[1], sess, batch_size, imkeys[1]
+                dsets[1], imsupports[1], sess, batch_size, imkeys[1]
                 )
 
         fid_value = calculate_frechet_distance(m1, s1, m2, s2)
@@ -268,7 +272,7 @@ def calculate_fid_given_dsets(dsets, imkeys, inception_path,
         return fid_value
 
 
-def calculate_fid_given_npz_and_dset(npz_path, dsets, imkeys, inception_path,
+def calculate_fid_given_npz_and_dset(npz_path, dsets, imsupports, imkeys, inception_path,
                               batch_size=50):
     ''' Calculates the FID where data statistics is given in npz and evaluation in dataset. '''
     inception_path = check_or_download_inception(inception_path)
@@ -280,17 +284,19 @@ def calculate_fid_given_npz_and_dset(npz_path, dsets, imkeys, inception_path,
         f = np.load(npz_path)
         m1, s1 = f['mu'][:], f['sigma'][:]
         f.close()
-        m2, s2 = calculate_activation_statistics_from_dset(dsets[1], sess, batch_size, imkeys[1])
+        m2, s2 = calculate_activation_statistics_from_dset(dsets[1],
+                imsupports[1], sess, batch_size, imkeys[1])
         fid_value = calculate_frechet_distance(m1, s1, m2, s2)
         return fid_value
 
 
-def calculate_fid_from_npz_if_available(npz_path, dsets, imkeys, inception_path,
+def calculate_fid_from_npz_if_available(npz_path, dsets, imsupports, imkeys, inception_path,
                               batch_size=50):
     try:
         # calculate from npz
         print('\nFound a .npz file, loading from it...')
-        fid_value = calculate_fid_given_npz_and_dset(npz_path, dsets, imkeys, inception_path, batch_size=batch_size)
+        fid_value = calculate_fid_given_npz_and_dset(npz_path, dsets,
+                imsupports, imkeys, inception_path, batch_size=batch_size)
     except:
         # if not possible to calculate from npz, calc from input data and save to npz
         os.makedirs(os.path.split(npz_path)[0], exist_ok=True)
@@ -301,7 +307,9 @@ def calculate_fid_from_npz_if_available(npz_path, dsets, imkeys, inception_path,
 
 
 def fid(root, data_in, data_out, config,
-        im_in_key='image', im_out_key='image', name='fid'):
+        im_in_key='image', im_out_key='image',
+        im_in_support=None, im_out_support=None,
+        name='fid'):
 
     incept_p = os.environ.get(
             'INCEPTION_PATH', 
@@ -319,12 +327,14 @@ def fid(root, data_in, data_out, config,
     for ii in range(fid_iterations):
         if pre_calc_stat_path is not 'none':
             fid_value = calculate_fid_from_npz_if_available(pre_calc_stat_path, [data_in, data_out],
+                    [support_in, support_out],
                     [im_in_key, im_out_key],
                     inception_path,
                     batch_size)
         else:
             fid_value = calculate_fid_given_dsets(
                     [data_in, data_out],
+                    [support_in, support_out],
                     [im_in_key, im_out_key],
                     inception_path,
                     batch_size,
