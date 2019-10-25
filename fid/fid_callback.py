@@ -264,11 +264,9 @@ def calculate_fid_given_dsets(dsets, imsupports, imkeys, inception_path,
             print('\nSaved input data statistics to {}'.format(save_data_in_path))
             np.savez(save_data_in_path, mu=m1, sigma=s1)
         m2, s2 = calculate_activation_statistics_from_dset(
-                dsets[1], imsupports[1], sess, batch_size, imkeys[1]
-                )
+                dsets[1], imsupports[1], sess, batch_size, imkeys[1])
 
         fid_value = calculate_frechet_distance(m1, s1, m2, s2)
-
         return fid_value
 
 
@@ -326,6 +324,7 @@ def fid(root, data_in, data_out, config,
     fids = []
     for ii in range(fid_iterations):
         if pre_calc_stat_path is not 'none':
+            print('\nNo path of pre-calculated statistics specified. Falling back to default behavior.')
             fid_value = calculate_fid_from_npz_if_available(pre_calc_stat_path, [data_in, data_out],
                     [im_in_support, im_out_support],
                     [im_in_key, im_out_key],
