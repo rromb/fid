@@ -251,10 +251,11 @@ def calculate_fid_given_dsets(dsets, imsupports, imkeys, inception_path,
                               batch_size=50, save_data_in_path=None):
     ''' Calculates the FID of two paths. '''
     inception_path = check_or_download_inception(inception_path)
-
     create_inception_graph(str(inception_path))
 
-    with tf.Session() as sess:
+    sess_config = tf.ConfigProto()
+    sess_config.gpu_options.allow_growth = True
+    with tf.Session(config=sess_config) as sess:
         sess.run(tf.global_variables_initializer())
 
         m1, s1 = calculate_activation_statistics_from_dset(
@@ -276,7 +277,9 @@ def calculate_fid_given_npz_and_dset(npz_path, dsets, imsupports, imkeys, incept
     inception_path = check_or_download_inception(inception_path)
     create_inception_graph(str(inception_path))
 
-    with tf.Session() as sess:
+    sess_config = tf.ConfigProto()
+    sess_config.gpu_options.allow_growth = True
+    with tf.Session(config=sess_config) as sess:
         sess.run(tf.global_variables_initializer())
         assert npz_path.endswith('.npz')
         f = np.load(npz_path)
@@ -316,7 +319,7 @@ def fid(root, data_in, data_out, config,
 
     inception_path = retrieve(config, 'fid/inception_path', default=incept_p)
     batch_size = retrieve(config, 'fid/batch_size', default=50)
-    pre_calc_stat_path = retrieve(config, 'fid/pre_calc_stat_path', default='none')
+    pre_calc_stat_path = retrieve(config, 'fid_stats/pre_calc_stat_path', default='none')
     fid_iterations = retrieve(config, 'fid/fid_iterations', default=1)
 
     save_dir = os.path.join(root, name)
