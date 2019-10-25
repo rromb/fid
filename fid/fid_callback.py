@@ -298,10 +298,10 @@ def calculate_fid_from_npz_if_available(npz_path, dsets, imsupports, imkeys, inc
         print('\nFound a .npz file, loading from it...')
         fid_value = calculate_fid_given_npz_and_dset(npz_path, dsets,
                 imsupports, imkeys, inception_path, batch_size=batch_size)
-    except:
+    except FileNotFoundError:
         # if not possible to calculate from npz, calc from input data and save to npz
         os.makedirs(os.path.split(npz_path)[0], exist_ok=True)
-        fid_value = calculate_fid_given_dsets(dsets, imkeys, inception_path, batch_size=batch_size,
+        fid_value = calculate_fid_given_dsets(dsets, imsupports, imkeys, inception_path, batch_size=batch_size,
                                               save_data_in_path=npz_path[:-4])
         print('\nNo npz file found, calculating statistics from data...')
     return fid_value
