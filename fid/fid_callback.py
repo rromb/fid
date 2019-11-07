@@ -182,10 +182,12 @@ def get_activations_from_dset(dset, imsupport, sess, batch_size=50, imkey='image
                 future_support='0->255',
                 current_support=imsupport,
                 clip=True)
-        images = images.astype(np.float32)[..., :3]
 
-        if images.shape[-1] == 1:
+        if len(images.shape) == 3:
+            images = images[:,:,:,None]
             images = np.tile(images, [1,1,1,3])
+
+        images = images.astype(np.float32)[..., :3]
 
         if len(pred_arr[start:end]) == 0:
             continue
@@ -292,7 +294,7 @@ def calculate_fid_given_npz_and_dset(npz_path, dsets, imsupports, imkeys, incept
 
 
 def calculate_fid_from_npz_if_available(npz_path, dsets, imsupports, imkeys, inception_path,
-                              batch_size=50):
+                                        batch_size=50):
     try:
         # calculate from npz
         print('\nFound a .npz file, loading from it...')
