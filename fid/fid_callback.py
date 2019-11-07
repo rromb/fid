@@ -186,6 +186,8 @@ def get_activations_from_dset(dset, imsupport, sess, batch_size=50, imkey='image
         if len(images.shape) == 3:
             images = images[:,:,:,None]
             images = np.tile(images, [1,1,1,3])
+        elif images.shape[-1] == 1:
+            images = np.tile(images, [1, 1, 1, 3])
 
         images = images.astype(np.float32)[..., :3]
 
