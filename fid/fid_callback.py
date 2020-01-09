@@ -360,6 +360,7 @@ def fid(root, data_in, data_out, config,
     with open(savename_std, 'w+') as f:
         f.write(str(fid_std))
     print('\nFID SCORE: {:.2f} +/- {:.2f}'.format(fid_score, fid_std))
+    return {"scalars": {"fid": fid_score}}
 
 
 if __name__ == "__main__":
