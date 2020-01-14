@@ -197,7 +197,7 @@ def get_activations_from_dset(dset, imsupport, sess, batch_size=50, imkey='image
         pred = sess.run(inception_layer, {'FID_Inception_Net/ExpandDims:0': images})
         pred_arr[start:end] = pred.reshape(batch_size,-1)
         del batch  # clean up memory
-
+    batches.finalize()
     if verbose:
         print(" done")
     return pred_arr
