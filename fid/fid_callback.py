@@ -351,15 +351,15 @@ def fid(root, data_in, data_out, config,
     if 'model_output.csv' in root:
         root = root[:-len('model_output.csv')]
     savename_score = os.path.join(save_dir, 'score.txt')
-    savename_std = os.path.join(save_dir, 'std.txt')
+    #savename_std = os.path.join(save_dir, 'std.txt')
 
     fid_score = np.array(fids).mean()
-    fid_std = np.array(fids).std()
+    #fid_std = np.array(fids).std()
     with open(savename_score, 'w+') as f:
         f.write(str(fid_score))
-    with open(savename_std, 'w+') as f:
-        f.write(str(fid_std))
-    print('\nFID SCORE: {:.2f} +/- {:.2f}'.format(fid_score, fid_std))
+    #with open(savename_std, 'w+') as f:
+    #    f.write(str(fid_std))
+    print('\nFID SCORE: {:.2f}'.format(fid_score))
     return {"scalars": {"fid": fid_score}}
 
 
