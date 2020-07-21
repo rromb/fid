@@ -22,6 +22,7 @@ from tqdm import tqdm
 from edflow.iterators.batches import make_batches
 from edflow.data.util import adjust_support
 from edflow.util import retrieve
+from edflow import get_logger
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
@@ -314,31 +315,37 @@ def calculate_fid_from_npz_if_available(npz_path, dsets, imsupports, imkeys, inc
 def fid(root, data_in, data_out, config,
         im_in_key='image', im_out_key='image',
         im_in_support=None, im_out_support=None,
-        name='fid'):
+        name='fid', im_out_keys=None):
 
     incept_p = os.environ.get(
             'INCEPTION_PATH', 
             '/export/scratch/jhaux/Models/inception_fid'
             )
 
+    logger = get_logger("fid_logging")
     inception_path = retrieve(config, 'fid/inception_path', default=incept_p)
     batch_size = retrieve(config, 'fid/batch_size', default=50)
     pre_calc_stat_path = retrieve(config, 'fid_stats/pre_calc_stat_path', default='none')
-    fid_iterations = retrieve(config, 'fid/fid_iterations', default=1)
+
+    if im_out_keys is not None:
+        assert type(im_out_keys) == list
+        logger.info("Using {} image keys for calculating FID statistics...".format(len(im_out_keys)))
+    else:
+        im_out_keys = [im_out_key]
 
     save_dir = os.path.join(root, name)
     os.makedirs(save_dir, exist_ok=True)
     fids = []
-    for ii in range(fid_iterations):
+    for im_out_key in im_out_keys:
         if pre_calc_stat_path is not 'none':
-            print('\nLoading pre-calculated statistics from {} if available.'.format(pre_calc_stat_path))
+            logger.info('Loading pre-calculated statistics from {} if available.'.format(pre_calc_stat_path))
             fid_value = calculate_fid_from_npz_if_available(pre_calc_stat_path, [data_in, data_out],
                     [im_in_support, im_out_support],
                     [im_in_key, im_out_key],
                     inception_path,
                     batch_size)
         else:
-            print('\nNo path of pre-calculated statistics specified. Falling back to default behavior.')
+            logger.info('No path of pre-calculated statistics specified. Falling back to default behavior.')
             fid_value = calculate_fid_given_dsets(
                     [data_in, data_out],
                     [im_in_support, im_out_support],
@@ -348,18 +355,19 @@ def fid(root, data_in, data_out, config,
                     save_data_in_path=os.path.join(save_dir, 'pre_calc_stats'))
         fids.append(fid_value)
 
-    if 'model_output.csv' in root:
-        root = root[:-len('model_output.csv')]
     savename_score = os.path.join(save_dir, 'score.txt')
-    #savename_std = os.path.join(save_dir, 'std.txt')
+    savename_std = os.path.join(save_dir, 'std.txt')
 
     fid_score = np.array(fids).mean()
-    #fid_std = np.array(fids).std()
+    fid_std = np.array(fids).std()
     with open(savename_score, 'w+') as f:
         f.write(str(fid_score))
-    #with open(savename_std, 'w+') as f:
-    #    f.write(str(fid_std))
-    print('\nFID SCORE: {:.2f}'.format(fid_score))
+    if len(im_out_keys) > 1:
+        with open(savename_std, 'w+') as f:
+            f.write(str(fid_std))
+        logger.info('FID SCORE: {:.2f} +/- {:.2f}'.format(fid_score, fid_std))
+    else:
+        logger.info('FID SCORE: {:.2f}'.format(fid_score))
     return {"scalars": {"fid": fid_score}}
 
 
